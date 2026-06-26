@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaDB · 用户数据库</title>
+    <title>NovaDB · 用户数据库 + API</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -208,6 +208,60 @@
             text-decoration: none;
         }
         .login-panel .switch-mode a:hover { text-decoration: underline; }
+
+        /* --- API 信息栏 --- */
+        .api-info-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .api-info-bar .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .api-info-bar .api-endpoint code {
+            background: rgba(0,0,0,0.3);
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-family: monospace;
+        }
+        .api-info-bar .api-endpoint .badge-api {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .api-info-bar .api-token {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .api-info-bar .api-token input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 12px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: monospace;
+            outline: none;
+            width: 180px;
+        }
+        .api-info-bar .api-token input:focus { border-color: var(--primary); }
 
         /* --- 控制台 (登录后可见) --- */
         .console-header {
@@ -502,21 +556,20 @@
             .inline-add-row { flex-direction: column; }
             .inline-add-row input { width: 100%; flex: none; }
             .login-panel { padding: 30px 20px; margin: 30px 16px; }
+            .api-info-bar { flex-direction: column; align-items: stretch; }
+            .api-info-bar .api-token input { width: 100%; }
         }
     </style>
 </head>
 <body>
 
-<!-- ===== 导航 ===== -->
 <header>
     <div class="logo"><i class="fa-solid fa-database"></i> NovaDB</div>
     <div class="header-actions" id="headerActions">
-        <!-- 由 JS 动态渲染 -->
-    </div>
+        </div>
 </header>
 
 <div class="app-container" id="appContainer">
-    <!-- ===== 登录面板 ===== -->
     <div id="loginPanel" class="login-panel">
         <div class="logo-big"><i class="fa-solid fa-cloud"></i></div>
         <h2>NovaDB</h2>
@@ -536,7 +589,6 @@
         </div>
     </div>
 
-    <!-- ===== 注册面板 ===== -->
     <div id="registerPanel" class="login-panel" style="display:none;">
         <div class="logo-big"><i class="fa-solid fa-user-plus"></i></div>
         <h2>注册新账号</h2>
@@ -560,8 +612,24 @@
         </div>
     </div>
 
-    <!-- ===== 数据库控制台 (登录后可见) ===== -->
     <div id="consoleArea" style="display:none;">
+
+        <div class="api-info-bar">
+            <div class="api-endpoint">
+                <span class="badge-api"><i class="fa-solid fa-code"></i> API</span>
+                <span style="color:var(--text-muted);font-size:0.85rem;">POST</span>
+                <code id="apiEndpointDisplay">/api/write</code>
+                <span style="color:var(--text-muted);font-size:0.8rem;">向当前用户的数据库写入数据</span>
+            </div>
+            <div class="api-token">
+                <span style="color:var(--text-muted);font-size:0.8rem;">API Key:</span>
+                <input type="text" id="apiTokenInput" readonly />
+                <button class="btn-sm" id="copyTokenBtn" title="复制 Token"><i class="fa-regular fa-copy"></i></button>
+                <button class="btn-sm" id="refreshTokenBtn" title="重置 Token"><i class="fa-solid fa-rotate"></i></button>
+                <button class="btn-sm success" id="openClientBtn" title="打开外置测试客户端"><i class="fa-solid fa-external-link"></i> 测试客户端</button>
+            </div>
+        </div>
+
         <div class="console-header">
             <h2>
                 <i class="fa-solid fa-table-cells-large" style="color:var(--primary);"></i> 数据管理器
@@ -572,11 +640,9 @@
             </div>
         </div>
 
-        <!-- 表栏 -->
         <div class="table-bar" id="tableBar">
             <div class="tables-list" id="tablesList">
-                <!-- 动态渲染 -->
-            </div>
+                </div>
             <div class="table-actions">
                 <button class="btn-sm warning" id="exportBtn"><i class="fa-solid fa-download"></i> 导出</button>
                 <button class="btn-sm" id="importBtn"><i class="fa-solid fa-upload"></i> 导入</button>
@@ -584,7 +650,6 @@
             </div>
         </div>
 
-        <!-- 数据表格 -->
         <div class="data-table-wrapper" id="dataTableWrapper">
             <div class="table-toolbar">
                 <div class="left">
@@ -606,17 +671,15 @@
                 </table>
             </div>
             <div class="inline-add-row" id="inlineAddRow">
-                <!-- 动态渲染 -->
-            </div>
+                </div>
         </div>
     </div>
 
     <footer>
-        <p>⚡ 数据存储在浏览器本地 (localStorage) · 每个用户独立空间 · 真正的持久化</p>
+        <p>⚡ 数据存储在浏览器本地 (localStorage) · 每个用户独立空间 · 支持 API 写入</p>
     </footer>
 </div>
 
-<!-- ===== 创建表模态框 ===== -->
 <div class="modal-overlay" id="createTableModal">
     <div class="modal">
         <h3><i class="fa-solid fa-table" style="color:var(--primary);"></i> 创建新表</h3>
@@ -636,7 +699,6 @@
     </div>
 </div>
 
-<!-- ===== 编辑行模态框 ===== -->
 <div class="modal-overlay" id="editRowModal">
     <div class="modal">
         <h3><i class="fa-solid fa-pen-to-square" style="color:var(--warning);"></i> 编辑行</h3>
@@ -658,6 +720,7 @@
 
         const USERS_KEY = 'novadb_users';
         const SESSION_KEY = 'novadb_session';
+        const API_TOKENS_KEY = 'novadb_api_tokens';
 
         function getUsers() {
             try {
@@ -717,6 +780,41 @@
         }
 
         // ============================================================
+        //  API Token 管理
+        // ============================================================
+
+        function getApiTokens() {
+            try {
+                return JSON.parse(localStorage.getItem(API_TOKENS_KEY)) || {};
+            } catch (_) { return {}; }
+        }
+
+        function saveApiTokens(tokens) {
+            localStorage.setItem(API_TOKENS_KEY, JSON.stringify(tokens));
+        }
+
+        function generateApiToken(username) {
+            const tokens = getApiTokens();
+            const token = 'nvdb_' + btoa(username + ':' + Date.now() + ':' + Math.random().toString(36).substr(2, 8));
+            tokens[username] = token;
+            saveApiTokens(tokens);
+            return token;
+        }
+
+        function getApiTokenForUser(username) {
+            const tokens = getApiTokens();
+            return tokens[username] || null;
+        }
+
+        function validateApiToken(token) {
+            const tokens = getApiTokens();
+            for (const [username, storedToken] of Object.entries(tokens)) {
+                if (storedToken === token) return username;
+            }
+            return null;
+        }
+
+        // ============================================================
         //  数据库引擎 (每个用户独立)
         // ============================================================
 
@@ -736,7 +834,6 @@
             localStorage.setItem(getUserDBKey(username), JSON.stringify(db));
         }
 
-        // ---- 表操作 ----
         function getTable(username, tableName) {
             const db = getUserDB(username);
             return db.tables[tableName] || null;
@@ -759,7 +856,7 @@
 
         function insertRow(username, tableName, rowData) {
             const table = getTable(username, tableName);
-            if (!table) return false;
+            if (!table) return null;
             const maxId = table.rows.reduce((max, r) => Math.max(max, (r.id || 0)), 0);
             const newRow = { id: maxId + 1, ...rowData };
             table.rows.push(newRow);
@@ -806,6 +903,102 @@
         }
 
         // ============================================================
+        //  API 处理器 (核心修复：解除 event.origin 锁定限制)
+        // ============================================================
+
+        window.addEventListener('message', function(event) {
+            const data = event.data;
+            if (!data || data.type !== 'NOVADB_API') return;
+
+            const { action, payload, token, requestId } = data;
+
+            // 验证 token
+            const username = validateApiToken(token);
+            if (!username) {
+                const response = {
+                    type: 'NOVADB_API_RESPONSE',
+                    requestId: requestId,
+                    success: false,
+                    error: 'Invalid or missing API token. Please generate a token from NovaDB console.'
+                };
+                if (event.source) {
+                    event.source.postMessage(response, '*');
+                }
+                return;
+            }
+
+            // 处理请求
+            let result = null;
+            let success = false;
+            let error = null;
+
+            try {
+                switch (action) {
+                    case 'INSERT': {
+                        const { table, data: rowData } = payload;
+                        if (!table || !rowData) { error = 'Missing table or data'; break; }
+                        const newRow = insertRow(username, table, rowData);
+                        if (newRow) { success = true; result = newRow; } else { error = `Table "${table}" not found`; }
+                        break;
+                    }
+                    case 'UPDATE': {
+                        const { table, id, data: updates } = payload;
+                        if (!table || id === undefined || !updates) { error = 'Missing table, id or updates'; break; }
+                        success = updateRow(username, table, id, updates);
+                        if (!success) error = `Failed to update row in "${table}"`;
+                        break;
+                    }
+                    case 'DELETE': {
+                        const { table, id } = payload;
+                        if (!table || id === undefined) { error = 'Missing table or id'; break; }
+                        success = deleteRow(username, table, id);
+                        if (!success) error = `Failed to delete row from "${table}"`;
+                        break;
+                    }
+                    case 'QUERY': {
+                        const { table } = payload;
+                        if (!table) { error = 'Missing table name'; break; }
+                        const tableData = getTable(username, table);
+                        if (tableData) { success = true; result = { rows: tableData.rows, columns: tableData.columns }; } else { error = `Table "${table}" not found`; }
+                        break;
+                    }
+                    case 'LIST_TABLES': {
+                        success = true;
+                        result = getTableNames(username);
+                        break;
+                    }
+                    case 'CREATE_TABLE': {
+                        const { table, columns } = payload;
+                        if (!table || !columns || !Array.isArray(columns) || columns.length === 0) { error = 'Missing table name or columns'; break; }
+                        const existing = getTable(username, table);
+                        if (existing) { error = `Table "${table}" already exists`; break; }
+                        getOrCreateTable(username, table, columns);
+                        success = true;
+                        result = { message: `Table "${table}" created` };
+                        break;
+                    }
+                    default:
+                        error = `Unknown action: ${action}`;
+                }
+            } catch (e) {
+                error = e.message || 'Internal error';
+            }
+
+            const response = {
+                type: 'NOVADB_API_RESPONSE',
+                requestId: requestId,
+                success: success,
+                result: result,
+                error: error
+            };
+
+            if (event.source) {
+                // 核心修复：使用 '*' 确保异步回传成功，不受同源策略拦截影响
+                event.source.postMessage(response, '*');
+            }
+        });
+
+        // ============================================================
         //  UI 控制器
         // ============================================================
 
@@ -820,6 +1013,11 @@
         const consoleArea = document.getElementById('consoleArea');
         const headerActions = document.getElementById('headerActions');
         const currentUserDisplay = document.getElementById('currentUserDisplay');
+        const apiEndpointDisplay = document.getElementById('apiEndpointDisplay');
+        const apiTokenInput = document.getElementById('apiTokenInput');
+        const copyTokenBtn = document.getElementById('copyTokenBtn');
+        const refreshTokenBtn = document.getElementById('refreshTokenBtn');
+        const openClientBtn = document.getElementById('openClientBtn');
 
         const loginUsername = document.getElementById('loginUsername');
         const loginPassword = document.getElementById('loginPassword');
@@ -906,6 +1104,10 @@
             renderHeader();
             if (currentUser) {
                 currentUserDisplay.textContent = currentUser;
+                let token = getApiTokenForUser(currentUser);
+                if (!token) { token = generateApiToken(currentUser); }
+                apiTokenInput.value = token;
+                apiEndpointDisplay.textContent = window.location.href;
                 renderTables();
                 renderTable();
             }
@@ -953,12 +1155,7 @@
             }
 
             const table = getTable(currentUser, currentTable);
-            if (!table) {
-                currentTable = null;
-                renderTables();
-                renderTable();
-                return;
-            }
+            if (!table) { currentTable = null; renderTables(); renderTable(); return; }
 
             const columns = table.columns || [];
             const rows = table.rows || [];
@@ -970,9 +1167,7 @@
             let filteredRows = rows;
             if (searchTerm) {
                 filteredRows = rows.filter(row => {
-                    return Object.values(row).some(val => 
-                        String(val).toLowerCase().includes(searchTerm)
-                    );
+                    return Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm));
                 });
             }
 
@@ -980,9 +1175,7 @@
                 tableHead.innerHTML = '<tr><th>无列定义</th></tr>';
             } else {
                 let headerHtml = '<tr><th>#</th>';
-                columns.forEach(col => {
-                    headerHtml += `<th>${col}</th>`;
-                });
+                columns.forEach(col => { headerHtml += `<th>${col}</th>`; });
                 headerHtml += '<th style="text-align:right;">操作</th></tr>';
                 tableHead.innerHTML = headerHtml;
             }
@@ -1060,14 +1253,9 @@
             const table = getTable(currentUser, currentTable);
             if (!table) return;
             const columns = table.columns || [];
-            if (columns.length === 0) {
-                alert('当前表没有列定义，请先编辑表结构。');
-                return;
-            }
+            if (columns.length === 0) { alert('当前表没有列定义，请先编辑表结构。'); return; }
             let html = '';
-            columns.forEach(col => {
-                html += `<input type="text" class="inline-input" data-col="${col}" placeholder="${col}" />`;
-            });
+            columns.forEach(col => { html += `<input type="text" class="inline-input" data-col="${col}" placeholder="${col}" />`; });
             const wrapper = inlineAddRow;
             wrapper.innerHTML = html;
             const cancelBtn = document.createElement('button');
@@ -1081,12 +1269,8 @@
             wrapper.appendChild(cancelBtn);
             wrapper.appendChild(confirmBtn);
 
-            document.getElementById('cancelInlineAdd').addEventListener('click', () => {
-                inlineAddRow.style.display = 'none';
-            });
-            document.getElementById('confirmInlineAdd').addEventListener('click', () => {
-                confirmInlineAddRow();
-            });
+            document.getElementById('cancelInlineAdd').addEventListener('click', () => { inlineAddRow.style.display = 'none'; });
+            document.getElementById('confirmInlineAdd').addEventListener('click', () => { confirmInlineAddRow(); });
 
             inlineAddRow.style.display = 'flex';
             const firstInput = wrapper.querySelector('.inline-input');
@@ -1107,10 +1291,7 @@
                 if (val) hasValue = true;
                 rowData[col] = val;
             });
-            if (!hasValue) {
-                alert('请至少填写一个字段。');
-                return;
-            }
+            if (!hasValue) { alert('请至少填写一个字段。'); return; }
             insertRow(currentUser, currentTable, rowData);
             inlineAddRow.style.display = 'none';
             renderTable();
@@ -1124,9 +1305,7 @@
             if (!name) { alert('请输入表名称'); return; }
             if (getTable(currentUser, name)) { alert(`表 "${name}" 已存在`); return; }
             let columns = [];
-            if (colsRaw) {
-                columns = colsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            }
+            if (colsRaw) { columns = colsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0); }
             if (columns.length === 0) { alert('请至少定义一个列'); return; }
             const colNames = columns.map(c => c.split(':')[0].trim()).filter(Boolean);
             if (colNames.length === 0) { alert('列定义格式错误，请使用 列名:类型 格式'); return; }
@@ -1175,6 +1354,27 @@
         }
 
         // ============================================================
+        //  核心修复：跨标签页主动握手建立（解决 Client 独立打开时的通信死锁）
+        // ============================================================
+        openClientBtn.addEventListener('click', function() {
+            if (!currentUser) return;
+            const token = apiTokenInput.value;
+            const user = currentUser;
+            // 假设外置客户端名为 test.html 且在同级目录下
+            const clientWin = window.open(`test.html?user=${encodeURIComponent(user)}&token=${encodeURIComponent(token)}`, '_blank');
+            
+            if (clientWin) {
+                // 每隔500ms发射一次强力的连通信号，直到对方脚本加载完毕并应答绑定
+                let handshakeTimer = setInterval(() => {
+                    if (clientWin.closed) { clearInterval(handshakeTimer); return; }
+                    clientWin.postMessage({ type: 'NOVADB_HANDSHAKE' }, '*');
+                }, 500);
+                // 5秒后自动安全撤消发射器
+                setTimeout(() => clearInterval(handshakeTimer), 5000);
+            }
+        });
+
+        // ============================================================
         //  认证事件绑定
         // ============================================================
 
@@ -1182,27 +1382,18 @@
             const username = loginUsername.value.trim();
             const password = loginPassword.value.trim();
             const result = loginUser(username, password);
-            if (result.success) {
-                currentUser = username;
-                showConsoleView();
-            } else {
-                loginError.textContent = result.error;
-            }
+            if (result.success) { currentUser = username; showConsoleView(); } else { loginError.textContent = result.error; }
         });
 
         loginUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
         loginPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
-
         switchToRegister.addEventListener('click', showRegisterView);
 
         registerBtn.addEventListener('click', () => {
             const username = registerUsername.value.trim();
             const password = registerPassword.value.trim();
             const confirm = registerPasswordConfirm.value.trim();
-            if (password !== confirm) {
-                registerError.textContent = '两次密码输入不一致';
-                return;
-            }
+            if (password !== confirm) { registerError.textContent = '两次密码输入不一致'; return; }
             const result = registerUser(username, password);
             if (result.success) {
                 registerError.textContent = '';
@@ -1210,16 +1401,31 @@
                 showLoginView();
                 loginUsername.value = username;
                 loginPassword.value = '';
-            } else {
-                registerError.textContent = result.error;
-            }
+            } else { registerError.textContent = result.error; }
         });
 
         registerUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
         registerPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
         registerPasswordConfirm.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
-
         switchToLogin.addEventListener('click', showLoginView);
+
+        // ============================================================
+        //  API Token 事件
+        // ============================================================
+
+        copyTokenBtn.addEventListener('click', () => {
+            apiTokenInput.select();
+            document.execCommand('copy');
+            alert('API Token 已复制到剪贴板');
+        });
+
+        refreshTokenBtn.addEventListener('click', () => {
+            if (!currentUser) return;
+            if (!confirm('重新生成 Token 会使旧 Token 失效，确定继续吗？')) return;
+            const newToken = generateApiToken(currentUser);
+            apiTokenInput.value = newToken;
+            alert('Token 已重新生成！');
+        });
 
         // ============================================================
         //  数据库事件绑定
@@ -1234,11 +1440,7 @@
         });
 
         addRowBtn.addEventListener('click', showInlineAdd);
-
-        createTableBtn.addEventListener('click', () => {
-            createTableModal.classList.add('active');
-            newTableName.focus();
-        });
+        createTableBtn.addEventListener('click', () => { createTableModal.classList.add('active'); newTableName.focus(); });
         cancelCreateTable.addEventListener('click', () => createTableModal.classList.remove('active'));
         confirmCreateTable.addEventListener('click', createTable);
         newTableName.addEventListener('keydown', (e) => { if (e.key === 'Enter') createTable(); });
@@ -1249,10 +1451,7 @@
             if (!currentUser || !currentTable || editRowId === null) return;
             const fields = editRowForm.querySelectorAll('.edit-field');
             const updates = {};
-            fields.forEach(inp => {
-                const col = inp.dataset.col;
-                updates[col] = inp.value;
-            });
+            fields.forEach(inp => { const col = inp.dataset.col; updates[col] = inp.value; });
             updateRow(currentUser, currentTable, editRowId, updates);
             editRowModal.classList.remove('active');
             renderTable();
@@ -1261,16 +1460,11 @@
         exportBtn.addEventListener('click', exportData);
         importBtn.addEventListener('click', () => importFileInput.click());
         importFileInput.addEventListener('change', function() {
-            if (this.files && this.files.length > 0) {
-                importData(this.files[0]);
-                this.value = '';
-            }
+            if (this.files && this.files.length > 0) { importData(this.files[0]); this.value = ''; }
         });
 
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', function(e) {
-                if (e.target === this) this.classList.remove('active');
-            });
+            overlay.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); });
         });
 
         // ============================================================
@@ -1278,21 +1472,33 @@
         // ============================================================
 
         const sessionUser = getCurrentUser();
-        if (sessionUser) {
-            currentUser = sessionUser;
-            showConsoleView();
-        } else {
-            showLoginView();
-        }
+        if (sessionUser) { currentUser = sessionUser; showConsoleView(); } else { showLoginView(); }
 
-        console.log('✅ NovaDB 用户版已启动 · 每个用户独立数据空间');
-        console.log('👤 当前用户:', currentUser || '未登录');
-
-        window.__NovaDB = { 
-            getUsers, saveUsers, getSession, 
-            getUserDB, saveUserDB, getTable, insertRow, updateRow, deleteRow 
+        window.NovaDB = {
+            call: function(action, payload, token) {
+                return new Promise((resolve, reject) => {
+                    const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                    const message = { type: 'NOVADB_API', action: action, payload: payload, token: token, requestId: requestId };
+                    const timeout = setTimeout(() => { window.removeEventListener('message', handler); reject(new Error('API 请求超时')); }, 10000);
+                    const handler = function(event) {
+                        if (event.data && event.data.type === 'NOVADB_API_RESPONSE' && event.data.requestId === requestId) {
+                            clearTimeout(timeout);
+                            window.removeEventListener('message', handler);
+                            if (event.data.success) { resolve(event.data.result); } else { reject(new Error(event.data.error || 'Unknown error')); }
+                        }
+                    };
+                    window.addEventListener('message', handler);
+                    const target = window.opener || window.parent || window;
+                    target.postMessage(message, '*');
+                });
+            },
+            insert: function(table, data, token) { return this.call('INSERT', { table, data }, token); },
+            update: function(table, id, data, token) { return this.call('UPDATE', { table, id, data }, token); },
+            delete: function(table, id, token) { return this.call('DELETE', { table, id }, token); },
+            query: function(table, token) { return this.call('QUERY', { table }, token); },
+            listTables: function(token) { return this.call('LIST_TABLES', {}, token); },
+            createTable: function(table, columns, token) { return this.call('CREATE_TABLE', { table, columns }, token); }
         };
-
     })();
 </script>
 </body>
