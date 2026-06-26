@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaDB · 用户数据库</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== 视觉体系 (完全保留 NovaHost 风格) ===== */
+        :root {
+            --bg-dark: #090D16;
+            --bg-card: #131A2C;
+            --text-main: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --primary: #6366F1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --accent: #06B6D4;
+            --gradient: linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #06B6D4 100%);
+            --border: rgba(255, 255, 255, 0.08);
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* --- 导航 --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 8%;
+            background: rgba(9, 13, 22, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo i { -webkit-text-fill-color: initial; color: var(--primary); }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+        .btn-sm {
+            background: rgba(255,255,255,0.08);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+        .btn-sm:hover { background: rgba(255,255,255,0.18); }
+        .btn-sm.success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .btn-sm.success:hover { background: rgba(16, 185, 129, 0.35); }
+        .btn-sm.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .btn-sm.danger:hover { background: rgba(239, 68, 68, 0.3); }
+        .btn-sm.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .btn-sm.warning:hover { background: rgba(245, 158, 11, 0.3); }
+
+        .user-badge {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- 主容器 --- */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 5% 60px;
+        }
+
+        /* --- 登录面板 --- */
+        .login-panel {
+            max-width: 420px;
+            margin: 60px auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px 36px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .login-panel .logo-big {
+            font-size: 2.8rem;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+        .login-panel h2 {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+        .login-panel .sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 28px;
+        }
+        .login-panel .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .login-panel .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .login-panel .form-group input {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .login-panel .form-group input:focus { border-color: var(--primary); }
+        .login-panel .login-error {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 8px;
+            min-height: 24px;
+        }
+        .login-panel .btn-primary {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+        .login-panel .switch-mode {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .login-panel .switch-mode a {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .login-panel .switch-mode a:hover { text-decoration: underline; }
+
+        /* --- 控制台 (登录后可见) --- */
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .console-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .console-header h2 small {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        /* --- 表管理栏 --- */
+        .table-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .table-bar .tables-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .table-bar .tables-list .table-tab {
+            padding: 4px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .table-bar .tables-list .table-tab:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-main);
+        }
+        .table-bar .tables-list .table-tab.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+
+        .table-bar .table-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* --- 数据表格 --- */
+        .data-table-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .table-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .table-toolbar .left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .table-toolbar .left .table-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .table-toolbar .left .row-count {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .table-toolbar .right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .table-toolbar input[type="text"] {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: white;
+            font-size: 0.8rem;
+            outline: none;
+            width: 180px;
+        }
+        .table-toolbar input[type="text"]::placeholder { color: var(--text-muted); }
+        .table-toolbar input[type="text"]:focus { border-color: var(--primary); }
+
+        .table-wrap {
+            overflow-x: auto;
+            padding: 0 4px 4px 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead {
+            background: rgba(255,255,255,0.03);
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            vertical-align: middle;
+            word-break: break-word;
+            max-width: 300px;
+        }
+
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .empty-row td {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 16px;
+            font-style: italic;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* --- 内联新增行 --- */
+        .inline-add-row {
+            display: none;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--border);
+        }
+        .inline-add-row input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: white;
+            font-size: 0.85rem;
+            outline: none;
+            flex: 1 1 140px;
+            min-width: 100px;
+        }
+        .inline-add-row input::placeholder { color: var(--text-muted); }
+        .inline-add-row input:focus { border-color: var(--primary); }
+        .inline-add-row .btn-primary { padding: 6px 18px; font-size: 0.8rem; }
+
+        /* --- 模态框 --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 520px;
+            width: 90%;
+            padding: 30px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal .form-group {
+            margin-bottom: 16px;
+        }
+        .modal .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .modal .form-group input,
+        .modal .form-group select {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .modal .form-group input:focus,
+        .modal .form-group select:focus { border-color: var(--primary); }
+        .modal .form-group select option { background: var(--bg-dark); }
+
+        .modal .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* --- 页脚 --- */
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+
+        /* --- 响应式 --- */
+        @media (max-width: 768px) {
+            header { flex-wrap: wrap; gap: 10px; }
+            .console-header { flex-direction: column; align-items: flex-start; }
+            .table-bar { flex-direction: column; align-items: stretch; }
+            .table-toolbar { flex-direction: column; align-items: stretch; }
+            .table-toolbar .right { flex-wrap: wrap; }
+            .table-toolbar input[type="text"] { width: 100%; }
+            .inline-add-row { flex-direction: column; }
+            .inline-add-row input { width: 100%; flex: none; }
+            .login-panel { padding: 30px 20px; margin: 30px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 导航 ===== -->
+<header>
+    <div class="logo"><i class="fa-solid fa-database"></i> NovaDB</div>
+    <div class="header-actions" id="headerActions">
+        <!-- 由 JS 动态渲染 -->
+    </div>
+</header>
+
+<div class="app-container" id="appContainer">
+    <!-- ===== 登录面板 ===== -->
+    <div id="loginPanel" class="login-panel">
+        <div class="logo-big"><i class="fa-solid fa-cloud"></i></div>
+        <h2>NovaDB</h2>
+        <p class="sub">登录以访问您的个人数据库</p>
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="loginUsername" placeholder="输入用户名" />
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="loginPassword" placeholder="输入密码" />
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button class="btn-primary" id="loginBtn">登录</button>
+        <div class="switch-mode">
+            还没有账号？<a id="switchToRegister">立即注册</a>
+        </div>
+    </div>
+
+    <!-- ===== 注册面板 ===== -->
+    <div id="registerPanel" class="login-panel" style="display:none;">
+        <div class="logo-big"><i class="fa-solid fa-user-plus"></i></div>
+        <h2>注册新账号</h2>
+        <p class="sub">创建您的个人数据库空间</p>
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="registerUsername" placeholder="选择用户名" />
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="registerPassword" placeholder="设置密码" />
+        </div>
+        <div class="form-group">
+            <label>确认密码</label>
+            <input type="password" id="registerPasswordConfirm" placeholder="再次输入密码" />
+        </div>
+        <div class="login-error" id="registerError"></div>
+        <button class="btn-primary" id="registerBtn">注册</button>
+        <div class="switch-mode">
+            已有账号？<a id="switchToLogin">返回登录</a>
+        </div>
+    </div>
+
+    <!-- ===== 数据库控制台 (登录后可见) ===== -->
+    <div id="consoleArea" style="display:none;">
+        <div class="console-header">
+            <h2>
+                <i class="fa-solid fa-table-cells-large" style="color:var(--primary);"></i> 数据管理器
+                <small>— <span id="currentUserDisplay">用户</span> 的数据库</small>
+            </h2>
+            <div>
+                <button class="btn-primary" id="createTableBtn"><i class="fa-solid fa-plus"></i> 新建表</button>
+            </div>
+        </div>
+
+        <!-- 表栏 -->
+        <div class="table-bar" id="tableBar">
+            <div class="tables-list" id="tablesList">
+                <!-- 动态渲染 -->
+            </div>
+            <div class="table-actions">
+                <button class="btn-sm warning" id="exportBtn"><i class="fa-solid fa-download"></i> 导出</button>
+                <button class="btn-sm" id="importBtn"><i class="fa-solid fa-upload"></i> 导入</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none;">
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="data-table-wrapper" id="dataTableWrapper">
+            <div class="table-toolbar">
+                <div class="left">
+                    <span class="table-name" id="currentTableName">未选择表</span>
+                    <span class="row-count" id="rowCount">0 行</span>
+                </div>
+                <div class="right">
+                    <input type="text" id="searchInput" placeholder="🔍 搜索...">
+                    <button class="btn-sm" id="refreshBtn"><i class="fa-solid fa-rotate"></i></button>
+                    <button class="btn-sm success" id="addRowBtn"><i class="fa-solid fa-plus"></i> 新增行</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead id="tableHead"><tr><th>加载中...</th></tr></thead>
+                    <tbody id="tableBody">
+                        <tr class="empty-row"><td colspan="10">暂无数据</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="inline-add-row" id="inlineAddRow">
+                <!-- 动态渲染 -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>⚡ 数据存储在浏览器本地 (localStorage) · 每个用户独立空间 · 真正的持久化</p>
+    </footer>
+</div>
+
+<!-- ===== 创建表模态框 ===== -->
+<div class="modal-overlay" id="createTableModal">
+    <div class="modal">
+        <h3><i class="fa-solid fa-table" style="color:var(--primary);"></i> 创建新表</h3>
+        <div class="form-group">
+            <label>表名称</label>
+            <input type="text" id="newTableName" placeholder="例如: users, products" />
+        </div>
+        <div class="form-group">
+            <label>列定义 (每行一个, 格式: 列名:类型)</label>
+            <input type="text" id="newTableColumns" placeholder="例如: id:string, name:string, age:number" />
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">支持: string, number, boolean, date</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-outline" id="cancelCreateTable">取消</button>
+            <button class="btn-primary" id="confirmCreateTable">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 编辑行模态框 ===== -->
+<div class="modal-overlay" id="editRowModal">
+    <div class="modal">
+        <h3><i class="fa-solid fa-pen-to-square" style="color:var(--warning);"></i> 编辑行</h3>
+        <div id="editRowForm"></div>
+        <div class="modal-actions">
+            <button class="btn-outline" id="cancelEditRow">取消</button>
+            <button class="btn-primary" id="confirmEditRow">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        // ============================================================
+        //  用户认证系统 (基于 localStorage)
+        // ============================================================
+
+        const USERS_KEY = 'novadb_users';
+        const SESSION_KEY = 'novadb_session';
+
+        function getUsers() {
+            try {
+                return JSON.parse(localStorage.getItem(USERS_KEY)) || {};
+            } catch (_) { return {}; }
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        }
+
+        function getSession() {
+            try {
+                return JSON.parse(localStorage.getItem(SESSION_KEY));
+            } catch (_) { return null; }
+        }
+
+        function saveSession(username) {
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ username, loginTime: Date.now() }));
+        }
+
+        function clearSession() {
+            localStorage.removeItem(SESSION_KEY);
+        }
+
+        function registerUser(username, password) {
+            const users = getUsers();
+            if (users[username]) return { success: false, error: '用户名已存在' };
+            if (username.length < 2) return { success: false, error: '用户名至少2个字符' };
+            if (password.length < 4) return { success: false, error: '密码至少4个字符' };
+            users[username] = { password, created: Date.now() };
+            saveUsers(users);
+            return { success: true };
+        }
+
+        function loginUser(username, password) {
+            const users = getUsers();
+            if (!users[username]) return { success: false, error: '用户不存在' };
+            if (users[username].password !== password) return { success: false, error: '密码错误' };
+            saveSession(username);
+            return { success: true };
+        }
+
+        function getCurrentUser() {
+            const session = getSession();
+            if (!session) return null;
+            const users = getUsers();
+            if (!users[session.username]) {
+                clearSession();
+                return null;
+            }
+            return session.username;
+        }
+
+        function logoutUser() {
+            clearSession();
+        }
+
+        // ============================================================
+        //  数据库引擎 (每个用户独立)
+        // ============================================================
+
+        function getUserDBKey(username) {
+            return `novadb_${username}`;
+        }
+
+        function getUserDB(username) {
+            try {
+                const raw = localStorage.getItem(getUserDBKey(username));
+                if (raw) return JSON.parse(raw);
+            } catch (_) {}
+            return { tables: {} };
+        }
+
+        function saveUserDB(username, db) {
+            localStorage.setItem(getUserDBKey(username), JSON.stringify(db));
+        }
+
+        // ---- 表操作 ----
+        function getTable(username, tableName) {
+            const db = getUserDB(username);
+            return db.tables[tableName] || null;
+        }
+
+        function getOrCreateTable(username, tableName, columns) {
+            const db = getUserDB(username);
+            if (!db.tables[tableName]) {
+                db.tables[tableName] = { columns: columns || [], rows: [] };
+                saveUserDB(username, db);
+            }
+            return db.tables[tableName];
+        }
+
+        function dropTable(username, tableName) {
+            const db = getUserDB(username);
+            delete db.tables[tableName];
+            saveUserDB(username, db);
+        }
+
+        function insertRow(username, tableName, rowData) {
+            const table = getTable(username, tableName);
+            if (!table) return false;
+            const maxId = table.rows.reduce((max, r) => Math.max(max, (r.id || 0)), 0);
+            const newRow = { id: maxId + 1, ...rowData };
+            table.rows.push(newRow);
+            saveUserDB(username, getUserDB(username));
+            return newRow;
+        }
+
+        function updateRow(username, tableName, rowId, updates) {
+            const table = getTable(username, tableName);
+            if (!table) return false;
+            const idx = table.rows.findIndex(r => r.id === rowId);
+            if (idx === -1) return false;
+            table.rows[idx] = { ...table.rows[idx], ...updates };
+            saveUserDB(username, getUserDB(username));
+            return true;
+        }
+
+        function deleteRow(username, tableName, rowId) {
+            const table = getTable(username, tableName);
+            if (!table) return false;
+            table.rows = table.rows.filter(r => r.id !== rowId);
+            saveUserDB(username, getUserDB(username));
+            return true;
+        }
+
+        function getTableNames(username) {
+            const db = getUserDB(username);
+            return Object.keys(db.tables);
+        }
+
+        function exportUserData(username) {
+            return JSON.stringify(getUserDB(username), null, 2);
+        }
+
+        function importUserData(username, jsonStr) {
+            try {
+                const data = JSON.parse(jsonStr);
+                if (data && typeof data === 'object' && 'tables' in data) {
+                    saveUserDB(username, data);
+                    return true;
+                }
+            } catch (_) {}
+            return false;
+        }
+
+        // ============================================================
+        //  UI 控制器
+        // ============================================================
+
+        let currentUser = null;
+        let currentTable = null;
+        let currentColumns = [];
+        let editRowId = null;
+
+        // DOM 引用
+        const loginPanel = document.getElementById('loginPanel');
+        const registerPanel = document.getElementById('registerPanel');
+        const consoleArea = document.getElementById('consoleArea');
+        const headerActions = document.getElementById('headerActions');
+        const currentUserDisplay = document.getElementById('currentUserDisplay');
+
+        const loginUsername = document.getElementById('loginUsername');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const loginBtn = document.getElementById('loginBtn');
+        const switchToRegister = document.getElementById('switchToRegister');
+
+        const registerUsername = document.getElementById('registerUsername');
+        const registerPassword = document.getElementById('registerPassword');
+        const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
+        const registerError = document.getElementById('registerError');
+        const registerBtn = document.getElementById('registerBtn');
+        const switchToLogin = document.getElementById('switchToLogin');
+
+        const tablesList = document.getElementById('tablesList');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const currentTableName = document.getElementById('currentTableName');
+        const rowCount = document.getElementById('rowCount');
+        const searchInput = document.getElementById('searchInput');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const inlineAddRow = document.getElementById('inlineAddRow');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const createTableBtn = document.getElementById('createTableBtn');
+        const createTableModal = document.getElementById('createTableModal');
+        const cancelCreateTable = document.getElementById('cancelCreateTable');
+        const confirmCreateTable = document.getElementById('confirmCreateTable');
+        const newTableName = document.getElementById('newTableName');
+        const newTableColumns = document.getElementById('newTableColumns');
+        const editRowModal = document.getElementById('editRowModal');
+        const editRowForm = document.getElementById('editRowForm');
+        const cancelEditRow = document.getElementById('cancelEditRow');
+        const confirmEditRow = document.getElementById('confirmEditRow');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const importFileInput = document.getElementById('importFileInput');
+
+        // ---------- 渲染登录状态 ----------
+        function renderHeader() {
+            if (currentUser) {
+                headerActions.innerHTML = `
+                    <span class="user-badge"><i class="fa-solid fa-user"></i> ${currentUser}</span>
+                    <button class="btn-outline" id="logoutBtn"><i class="fa-solid fa-sign-out-alt"></i> 登出</button>
+                `;
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    logoutUser();
+                    currentUser = null;
+                    currentTable = null;
+                    showLoginView();
+                });
+            } else {
+                headerActions.innerHTML = `<span style="color:var(--text-muted);font-size:0.85rem;">未登录</span>`;
+            }
+        }
+
+        // ---------- 显示登录/注册视图 ----------
+        function showLoginView() {
+            loginPanel.style.display = 'block';
+            registerPanel.style.display = 'none';
+            consoleArea.style.display = 'none';
+            renderHeader();
+            loginError.textContent = '';
+            loginUsername.value = '';
+            loginPassword.value = '';
+            loginUsername.focus();
+        }
+
+        function showRegisterView() {
+            loginPanel.style.display = 'none';
+            registerPanel.style.display = 'block';
+            consoleArea.style.display = 'none';
+            renderHeader();
+            registerError.textContent = '';
+            registerUsername.value = '';
+            registerPassword.value = '';
+            registerPasswordConfirm.value = '';
+            registerUsername.focus();
+        }
+
+        function showConsoleView() {
+            loginPanel.style.display = 'none';
+            registerPanel.style.display = 'none';
+            consoleArea.style.display = 'block';
+            renderHeader();
+            if (currentUser) {
+                currentUserDisplay.textContent = currentUser;
+                renderTables();
+                renderTable();
+            }
+        }
+
+        // ---------- 渲染表列表 ----------
+        function renderTables() {
+            if (!currentUser) return;
+            const names = getTableNames(currentUser);
+            tablesList.innerHTML = '';
+            if (names.length === 0) {
+                tablesList.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;padding:4px 0;">暂无表，点击 "新建表" 开始</span>';
+                return;
+            }
+            names.forEach(name => {
+                const tab = document.createElement('span');
+                tab.className = 'table-tab' + (name === currentTable ? ' active' : '');
+                tab.textContent = name;
+                tab.dataset.table = name;
+                tab.addEventListener('click', () => switchTable(name));
+                tablesList.appendChild(tab);
+            });
+        }
+
+        // ---------- 切换表 ----------
+        function switchTable(tableName) {
+            if (!currentUser) return;
+            const table = getTable(currentUser, tableName);
+            if (!table) return;
+            currentTable = tableName;
+            currentColumns = table.columns || [];
+            renderTables();
+            renderTable();
+            inlineAddRow.style.display = 'none';
+        }
+
+        // ---------- 渲染表格数据 ----------
+        function renderTable() {
+            if (!currentUser || !currentTable) {
+                tableHead.innerHTML = '<tr><th>请选择或创建表</th></tr>';
+                tableBody.innerHTML = '<tr class="empty-row"><td colspan="10">暂无表，请创建</td></tr>';
+                currentTableName.textContent = '未选择表';
+                rowCount.textContent = '0 行';
+                return;
+            }
+
+            const table = getTable(currentUser, currentTable);
+            if (!table) {
+                currentTable = null;
+                renderTables();
+                renderTable();
+                return;
+            }
+
+            const columns = table.columns || [];
+            const rows = table.rows || [];
+
+            currentTableName.textContent = currentTable;
+            rowCount.textContent = `${rows.length} 行`;
+
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let filteredRows = rows;
+            if (searchTerm) {
+                filteredRows = rows.filter(row => {
+                    return Object.values(row).some(val => 
+                        String(val).toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
+
+            if (columns.length === 0) {
+                tableHead.innerHTML = '<tr><th>无列定义</th></tr>';
+            } else {
+                let headerHtml = '<tr><th>#</th>';
+                columns.forEach(col => {
+                    headerHtml += `<th>${col}</th>`;
+                });
+                headerHtml += '<th style="text-align:right;">操作</th></tr>';
+                tableHead.innerHTML = headerHtml;
+            }
+
+            if (filteredRows.length === 0) {
+                tableBody.innerHTML = `<tr class="empty-row"><td colspan="${columns.length + 2}">${rows.length === 0 ? '暂无数据，点击 "新增行" 添加' : '没有匹配的搜索结果'}</td></tr>`;
+                return;
+            }
+
+            let bodyHtml = '';
+            filteredRows.forEach((row, idx) => {
+                bodyHtml += '<tr>';
+                bodyHtml += `<td style="color:var(--text-muted);font-size:0.8rem;">${row.id || idx + 1}</td>`;
+                columns.forEach(col => {
+                    const val = row[col] !== undefined ? row[col] : '';
+                    bodyHtml += `<td>${escapeHtml(String(val))}</td>`;
+                });
+                bodyHtml += `<td style="text-align:right;">
+                    <div class="row-actions" style="justify-content:flex-end;">
+                        <button class="btn-sm warning edit-row-btn" data-id="${row.id}"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn-sm danger delete-row-btn" data-id="${row.id}"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </td>`;
+                bodyHtml += '</tr>';
+            });
+            tableBody.innerHTML = bodyHtml;
+
+            document.querySelectorAll('.edit-row-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditRow(parseInt(btn.dataset.id)));
+            });
+            document.querySelectorAll('.delete-row-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteRowById(parseInt(btn.dataset.id)));
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ---------- 行操作 ----------
+        function deleteRowById(id) {
+            if (!currentUser || !currentTable) return;
+            if (!confirm(`确定要删除 ID 为 ${id} 的行吗？`)) return;
+            deleteRow(currentUser, currentTable, id);
+            renderTable();
+        }
+
+        function openEditRow(id) {
+            if (!currentUser || !currentTable) return;
+            const table = getTable(currentUser, currentTable);
+            if (!table) return;
+            const row = table.rows.find(r => r.id === id);
+            if (!row) return;
+            editRowId = id;
+            const columns = table.columns || [];
+            let formHtml = '';
+            columns.forEach(col => {
+                const val = row[col] !== undefined ? row[col] : '';
+                formHtml += `
+                    <div class="form-group">
+                        <label>${col}</label>
+                        <input type="text" class="edit-field" data-col="${col}" value="${escapeHtml(String(val))}" />
+                    </div>
+                `;
+            });
+            editRowForm.innerHTML = formHtml;
+            editRowModal.classList.add('active');
+        }
+
+        // ---------- 内联新增行 ----------
+        function showInlineAdd() {
+            if (!currentUser || !currentTable) return;
+            const table = getTable(currentUser, currentTable);
+            if (!table) return;
+            const columns = table.columns || [];
+            if (columns.length === 0) {
+                alert('当前表没有列定义，请先编辑表结构。');
+                return;
+            }
+            let html = '';
+            columns.forEach(col => {
+                html += `<input type="text" class="inline-input" data-col="${col}" placeholder="${col}" />`;
+            });
+            const wrapper = inlineAddRow;
+            wrapper.innerHTML = html;
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn-sm';
+            cancelBtn.id = 'cancelInlineAdd';
+            cancelBtn.textContent = '取消';
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn-primary';
+            confirmBtn.id = 'confirmInlineAdd';
+            confirmBtn.innerHTML = '<i class="fa-solid fa-check"></i> 确认添加';
+            wrapper.appendChild(cancelBtn);
+            wrapper.appendChild(confirmBtn);
+
+            document.getElementById('cancelInlineAdd').addEventListener('click', () => {
+                inlineAddRow.style.display = 'none';
+            });
+            document.getElementById('confirmInlineAdd').addEventListener('click', () => {
+                confirmInlineAddRow();
+            });
+
+            inlineAddRow.style.display = 'flex';
+            const firstInput = wrapper.querySelector('.inline-input');
+            if (firstInput) firstInput.focus();
+        }
+
+        function confirmInlineAddRow() {
+            if (!currentUser || !currentTable) return;
+            const table = getTable(currentUser, currentTable);
+            if (!table) return;
+            const columns = table.columns || [];
+            const inputs = inlineAddRow.querySelectorAll('.inline-input');
+            const rowData = {};
+            let hasValue = false;
+            inputs.forEach(inp => {
+                const col = inp.dataset.col;
+                const val = inp.value.trim();
+                if (val) hasValue = true;
+                rowData[col] = val;
+            });
+            if (!hasValue) {
+                alert('请至少填写一个字段。');
+                return;
+            }
+            insertRow(currentUser, currentTable, rowData);
+            inlineAddRow.style.display = 'none';
+            renderTable();
+        }
+
+        // ---------- 创建表 ----------
+        function createTable() {
+            if (!currentUser) return;
+            const name = newTableName.value.trim();
+            const colsRaw = newTableColumns.value.trim();
+            if (!name) { alert('请输入表名称'); return; }
+            if (getTable(currentUser, name)) { alert(`表 "${name}" 已存在`); return; }
+            let columns = [];
+            if (colsRaw) {
+                columns = colsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            }
+            if (columns.length === 0) { alert('请至少定义一个列'); return; }
+            const colNames = columns.map(c => c.split(':')[0].trim()).filter(Boolean);
+            if (colNames.length === 0) { alert('列定义格式错误，请使用 列名:类型 格式'); return; }
+
+            const db = getUserDB(currentUser);
+            db.tables[name] = { columns: colNames, rows: [] };
+            saveUserDB(currentUser, db);
+            newTableName.value = '';
+            newTableColumns.value = '';
+            createTableModal.classList.remove('active');
+            currentTable = name;
+            renderTables();
+            renderTable();
+        }
+
+        // ---------- 导出/导入 ----------
+        function exportData() {
+            if (!currentUser) return;
+            const data = exportUserData(currentUser);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `novadb_${currentUser}_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(file) {
+            if (!currentUser) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const success = importUserData(currentUser, e.target.result);
+                if (success) {
+                    alert('导入成功！');
+                    currentTable = null;
+                    renderTables();
+                    renderTable();
+                } else {
+                    alert('导入失败，请检查 JSON 格式。');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ============================================================
+        //  认证事件绑定
+        // ============================================================
+
+        loginBtn.addEventListener('click', () => {
+            const username = loginUsername.value.trim();
+            const password = loginPassword.value.trim();
+            const result = loginUser(username, password);
+            if (result.success) {
+                currentUser = username;
+                showConsoleView();
+            } else {
+                loginError.textContent = result.error;
+            }
+        });
+
+        loginUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+        loginPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+
+        switchToRegister.addEventListener('click', showRegisterView);
+
+        registerBtn.addEventListener('click', () => {
+            const username = registerUsername.value.trim();
+            const password = registerPassword.value.trim();
+            const confirm = registerPasswordConfirm.value.trim();
+            if (password !== confirm) {
+                registerError.textContent = '两次密码输入不一致';
+                return;
+            }
+            const result = registerUser(username, password);
+            if (result.success) {
+                registerError.textContent = '';
+                alert('注册成功！请登录。');
+                showLoginView();
+                loginUsername.value = username;
+                loginPassword.value = '';
+            } else {
+                registerError.textContent = result.error;
+            }
+        });
+
+        registerUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
+        registerPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
+        registerPasswordConfirm.addEventListener('keydown', (e) => { if (e.key === 'Enter') registerBtn.click(); });
+
+        switchToLogin.addEventListener('click', showLoginView);
+
+        // ============================================================
+        //  数据库事件绑定
+        // ============================================================
+
+        refreshBtn.addEventListener('click', renderTable);
+
+        let searchTimer = null;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(renderTable, 300);
+        });
+
+        addRowBtn.addEventListener('click', showInlineAdd);
+
+        createTableBtn.addEventListener('click', () => {
+            createTableModal.classList.add('active');
+            newTableName.focus();
+        });
+        cancelCreateTable.addEventListener('click', () => createTableModal.classList.remove('active'));
+        confirmCreateTable.addEventListener('click', createTable);
+        newTableName.addEventListener('keydown', (e) => { if (e.key === 'Enter') createTable(); });
+        newTableColumns.addEventListener('keydown', (e) => { if (e.key === 'Enter') createTable(); });
+
+        cancelEditRow.addEventListener('click', () => editRowModal.classList.remove('active'));
+        confirmEditRow.addEventListener('click', () => {
+            if (!currentUser || !currentTable || editRowId === null) return;
+            const fields = editRowForm.querySelectorAll('.edit-field');
+            const updates = {};
+            fields.forEach(inp => {
+                const col = inp.dataset.col;
+                updates[col] = inp.value;
+            });
+            updateRow(currentUser, currentTable, editRowId, updates);
+            editRowModal.classList.remove('active');
+            renderTable();
+        });
+
+        exportBtn.addEventListener('click', exportData);
+        importBtn.addEventListener('click', () => importFileInput.click());
+        importFileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                importData(this.files[0]);
+                this.value = '';
+            }
+        });
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('active');
+            });
+        });
+
+        // ============================================================
+        //  初始化：检查登录状态
+        // ============================================================
+
+        const sessionUser = getCurrentUser();
+        if (sessionUser) {
+            currentUser = sessionUser;
+            showConsoleView();
+        } else {
+            showLoginView();
+        }
+
+        console.log('✅ NovaDB 用户版已启动 · 每个用户独立数据空间');
+        console.log('👤 当前用户:', currentUser || '未登录');
+
+        window.__NovaDB = { 
+            getUsers, saveUsers, getSession, 
+            getUserDB, saveUserDB, getTable, insertRow, updateRow, deleteRow 
+        };
+
+    })();
+</script>
+</body>
+</html>
